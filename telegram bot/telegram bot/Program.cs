@@ -1,5 +1,6 @@
 ﻿using System.Reflection.Metadata;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
@@ -76,14 +77,14 @@ class Program
                                     // тут обрабатываем команду /start, остальные аналогично
                                     if (message.Text == "/start")
                                     {
-                                        await botClient.SendTextMessageAsync(
+                                        await botClient.SendMessage(
                                             chat.Id,
                                             "Выбери клавиатуру:\n" +
                                             "/inline\n" +
-                                            "/reply\n");
+                                            "/reply\n" +
+                                            "/feedback");
                                         return;
                                     }
-
                                     if (message.Text == "/inline")
                                     {
                                         // Тут создаем нашу клавиатуру
@@ -96,23 +97,17 @@ class Program
                                         new InlineKeyboardButton[] // тут создаем массив кнопок
                                         {
                                             InlineKeyboardButton.WithUrl("Это кнопка с сайтом", "https://habr.com/"),
-                                            InlineKeyboardButton.WithCallbackData("А это просто кнопка", "button1"),
-                                        },
-                                        new InlineKeyboardButton[]
-                                        {
-                                            InlineKeyboardButton.WithCallbackData("Тут еще одна", "button2"),
-                                            InlineKeyboardButton.WithCallbackData("И здесь", "button3"),
-                                        },
+                                            InlineKeyboardButton.WithUrl("Материалы для тг бота", "https://core.telegram.org/bots/api#available-methods"),
+                                        }
                                             });
 
-                                        await botClient.SendTextMessageAsync(
+                                        await botClient.SendMessage(
                                             chat.Id,
-                                            "Это inline клавиатура!",
+                                            "Это ссылки на полезные источники!",
                                             replyMarkup: inlineKeyboard); // Все клавиатуры передаются в параметр replyMarkup
 
                                         return;
                                     }
-
                                     if (message.Text == "/reply")
                                     {
                                         // Тут все аналогично Inline клавиатуре, только меняются классы
@@ -143,30 +138,82 @@ class Program
                                             ResizeKeyboard = true,
                                         };
 
-                                        await botClient.SendTextMessageAsync(
+                                        await botClient.SendMessage(
                                             chat.Id,
                                             "Это reply клавиатура!",
                                             replyMarkup: replyKeyboard); // опять передаем клавиатуру в параметр replyMarkup
 
                                         return;
                                     }
-
-                                    if (message.Text == "Позвони мне!")
+                                    if (message.Text == "/feedback")
                                     {
-                                        await botClient.SendTextMessageAsync(
+                                        // Тут создаем нашу клавиатуру
+                                        var inlineKeyboard = new InlineKeyboardMarkup(
+                                            new List<InlineKeyboardButton[]>() // здесь создаем лист (массив), который содрежит в себе массив из класса кнопок
+                                            {
+                                        // Каждый новый массив - это дополнительные строки,
+                                        // а каждая дополнительная кнопка в массиве - это добавление ряда
+
+                                        new InlineKeyboardButton[] // тут создаем массив кнопок
+                                        {
+                                            InlineKeyboardButton.WithUrl("ТГ для обратной связи", "https://t.me/selli173"),
+                                            InlineKeyboardButton.WithUrl("ВК для обратной связи", "https://vk.com/selli7"),
+                                        }
+                                            });
+
+                                        await botClient.SendMessage(
                                             chat.Id,
-                                            "Хорошо, присылай номер!");
+                                            "Обратная связь",
+                                            replyMarkup: inlineKeyboard); // Все клавиатуры передаются в параметр replyMarkup
 
                                         return;
                                     }
 
+                                    if (message.Text.ToLower().Contains("привет"))
+                                    {
+                                        await botClient.SendMessage(
+                                            chat.Id,
+                                            "И вам доброго");
+
+                                        return;
+                                    }
+
+                                    if (message.Text.ToLower().Contains("пока"))
+                                    {
+                                        await botClient.SendMessage(
+                                            chat.Id,
+                                            "Всего хорошего)");
+
+                                        return;
+                                    }
+
+                                    if (message.Text == "Позвони мне!")
+                                    {
+                                        await botClient.SendMessage(
+                                            chat.Id,
+                                            "Хорошо, присылай номер!");
+                                        return;
+                                    }
                                     if (message.Text == "Напиши моему соседу!")
                                     {
-                                        await botClient.SendTextMessageAsync(
+                                        await botClient.SendMessage(
                                             chat.Id,
                                             "А самому что, трудно что-ли ?");
 
                                         return;
+                                    }
+                                    if (Regex.IsMatch(message.Text, @"^((8|\+7)[\- ]?)?(\(?\d{3}\)?[\-]?)?[\d\- ]{7,10}$"))
+                                    {
+                                        await botClient.SendMessage(
+                                            chat.Id,
+                                            "Отлично, попробую вам позванить");
+                                        return;
+                                    }
+                                    else
+                                    {
+                                        await botClient.SendMessage(
+                                            chat.Id,
+                                            "Вы ввели некорректный номер телефона");
                                     }
 
                                     return;
@@ -175,74 +222,12 @@ class Program
                             // Добавил default , чтобы показать вам разницу типов Message
                             default:
                                 {
-                                    await botClient.SendTextMessageAsync(
+                                    await botClient.SendMessage(
                                         chat.Id,
                                         "Используй только текст!");
                                     return;
                                 }
                         }
-
-                        return;
-                    }
-
-                case UpdateType.CallbackQuery:
-                    {
-                        // Переменная, которая будет содержать в себе всю информацию о кнопке, которую нажали
-                        var callbackQuery = update.CallbackQuery;
-
-                        // Аналогично и с Message мы можем получить информацию о чате, о пользователе и т.д.
-                        var user = callbackQuery.From;
-
-                        // Выводим на экран нажатие кнопки
-                        Console.WriteLine($"{user.FirstName} ({user.Id}) нажал на кнопку: {callbackQuery.Data}");
-
-                        // Вот тут нужно уже быть немножко внимательным и не путаться!
-                        // Мы пишем не callbackQuery.Chat , а callbackQuery.Message.Chat , так как
-                        // кнопка привязана к сообщению, то мы берем информацию от сообщения.
-                        var chat = callbackQuery.Message.Chat;
-
-                        // Добавляем блок switch для проверки кнопок
-                        switch (callbackQuery.Data)
-                        {
-                            // Data - это придуманный нами id кнопки, мы его указывали в параметре
-                            // callbackData при создании кнопок. У меня это button1, button2 и button3
-
-                            case "button1":
-                                {
-                                    // В этом типе клавиатуры обязательно нужно использовать следующий метод
-                                    await botClient.AnswerCallbackQueryAsync(callbackQuery.Id);
-                                    // Для того, чтобы отправить телеграмму запрос, что мы нажали на кнопку
-
-                                    await botClient.SendTextMessageAsync(
-                                        chat.Id,
-                                        $"Вы нажали на {callbackQuery.Data}");
-                                    return;
-                                }
-
-                            case "button2":
-                                {
-                                    // А здесь мы добавляем наш сообственный текст, который заменит слово "загрузка", когда мы нажмем на кнопку
-                                    await botClient.AnswerCallbackQueryAsync(callbackQuery.Id, "Тут может быть ваш текст!");
-
-                                    await botClient.SendTextMessageAsync(
-                                        chat.Id,
-                                        $"Вы нажали на {callbackQuery.Data}");
-                                    return;
-                                }
-
-                            case "button3":
-                                {
-                                    // А тут мы добавили еще showAlert, чтобы отобразить пользователю полноценное окно
-                                    await botClient.AnswerCallbackQueryAsync(callbackQuery.Id, "А это полноэкранный текст!", showAlert: true);
-
-                                    await botClient.SendTextMessageAsync(
-                                        chat.Id,
-                                        $"Вы нажали на {callbackQuery.Data}");
-                                    return;
-                                }
-                        }
-
-                        return;
                     }
             }
         }
